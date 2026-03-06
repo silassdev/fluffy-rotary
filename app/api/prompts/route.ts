@@ -1,65 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb/client';
-import { PromptModel } from '@/lib/mongodb/models/Prompt';
-import { TemplateProcessor } from '@/lib/prompt-engine/template-processor';
-import { verifyAuth } from '@/lib/auth/jwt';
+import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import { Prompt } from '@/lib/mongodb/models/Prompt';
+import MongoDBClient from '@/lib/mongodb/client';
 
-export async function POST(request: NextRequest) {
+export async function GET() {
   try {
-    const user = await verifyAuth(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { title, description, template, model, tags, isPublic } = await request.json();
-
-    // Validate variables in template
-    const variables = TemplateProcessor.extractVariables(template.user);
-
-    const db = await connectToDatabase();
-    const promptModel = new PromptModel(db);
-
-    const promptId = await promptModel.create({
-      creatorId: user._id,
-      title,
-      description,
-      template: { ...template, variables },
-      model,
-      tags,
-      isPublic,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    return NextResponse.json({
-      success: true,
-      promptId: promptId.toString(),
-    });
-  } catch (error) {
-    console.error('Error creating prompt:', error);
-    return NextResponse.json(
-      { error: 'Failed to create prompt' },
-      { status: 500 }
-    );
+    const mongo = MongoDBClient.getInstance();
+    await mongo.connect();
+    
+    // TODO: Filter by current user ID when auth is ready
+    const prompts = await Prompt.find({}).sort({ updatedAt: -1 });
+    
+    return NextResponse.json(prompts);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const user = await verifyAuth(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const db = await connectToDatabase();
-    const promptModel = new PromptModel(db);
-    const prompts = await promptModel.listByCreator(user._id, 50);
-
-    return NextResponse.json({
-      success: true,
-      prompts,
+    const mongo = MongoDBClient.getInstance();
+    await mongo.connect();
+    
+    const data = await request.json();
+    
+    // Mock user ID for now since we're in early dev
+    const mockUserId = new mongoose.Types.ObjectId();
+    
+    const newPrompt = new Prompt({
+      ...data,
+      userId: mockUserId,
     });
-  } catch (error) {
-    console.error('Error fetching prompts:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch prompts' },
-      { status: 500 }
-    );
+    
+    await newPrompt.save();
+    
+    return NextResponse.json(newPrompt, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

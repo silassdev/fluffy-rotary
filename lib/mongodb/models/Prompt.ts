@@ -1,44 +1,55 @@
 import mongoose, { Schema, model, models, Document } from "mongoose";
 
-export interface ILeaderboard extends Document {
-  username: string;
-  avatar: string;
-  score: number;
-  battlesWon: number;
+export interface IPrompt extends Document {
+  title: string;
+  template: string;
+  systemInstruction?: string;
+  variables: string[];
+  model: string;
+  userId: mongoose.Types.ObjectId;
+  isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// 2. Define the Schema
-const LeaderboardSchema = new Schema<ILeaderboard>(
+const PromptSchema = new Schema<IPrompt>(
   {
-    username: { 
+    title: { 
       type: String, 
-      required: true, 
-      unique: true, // Prevents duplicate entries for the same user
-      index: true 
+      required: true,
+      trim: true
     },
-    avatar: { 
+    template: { 
       type: String, 
       required: true 
     },
-    score: { 
-      type: Number, 
-      required: true, 
-      default: 0 
+    systemInstruction: { 
+      type: String,
+      default: ""
     },
-    battlesWon: { 
-      type: Number, 
-      required: true, 
-      default: 1 
+    variables: {
+      type: [String],
+      default: []
     },
+    model: {
+      type: String,
+      required: true,
+      default: "gpt-4"
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true
+    },
+    isPublic: {
+      type: Boolean,
+      default: false
+    }
   },
   { 
-    timestamps: true // Automatically manages createdAt and updatedAt
+    timestamps: true 
   }
 );
 
-// 3. Export the Model
-// Note: In Next.js, we must check if the model already exists to prevent
-// errors during hot-reloading (development mode).
-export const Leaderboard = models.Leaderboard || model<ILeaderboard>("Leaderboard", LeaderboardSchema);
+export const Prompt = models.Prompt || model<IPrompt>("Prompt", PromptSchema);

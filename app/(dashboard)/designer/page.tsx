@@ -1,23 +1,45 @@
+"use client";
+
 import React from 'react';
-import PromptEditor from '@/app/(dashboard)/designer/components/PromptEditor';
+import PromptEditor from './components/PromptEditor';
 
 export default function DesignerPage() {
+  const handleSave = async (data: any) => {
+    try {
+      const response = await fetch('/api/prompts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save prompt');
+      }
+
+      const savedPrompt = await response.json();
+      console.log("Saved prompt:", savedPrompt);
+      alert("Prompt saved successfully!");
+    } catch (error: any) {
+      console.error("Error saving prompt:", error);
+      alert(`Error saving prompt: ${error.message}`);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Prompt Designer</h1>
-        <div className="text-sm text-slate-500">Create templates, add variables and preview outputs.</div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow">
-          <PromptEditor />
+    <div className="p-4 md:p-8 max-w-7xl mx-auto h-[max(80vh,600px)]">
+      <div className="flex flex-col h-full gap-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Prompt Designer</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Create and iterate on your LLM prompt templates.
+          </p>
         </div>
-
-        <aside className="bg-white p-6 rounded-2xl shadow">
-          <h3 className="font-semibold">Variables</h3>
-          <p className="text-sm text-slate-500 mt-2">Define variables like <code>{{'{{text}}'}}</code>, <code>{{'{{user_name}}'}}</code> and preview.</p>
-        </aside>
+        
+        <div className="flex-1 min-h-0">
+          <PromptEditor onSave={handleSave} />
+        </div>
       </div>
     </div>
   );
